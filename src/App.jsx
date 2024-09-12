@@ -31,6 +31,7 @@ function App() {
 
 
   const handleCodePoints = (code) => {
+    if(code === undefined) return
     return Array.from(code).map(char => char.codePointAt(0))
   }
 
@@ -38,13 +39,26 @@ function App() {
 
 
   const handleSearch = () => {
-    if(text.length > 40 || text === "") return
+    if(text.length > 40 || text === "" || text.match(/\w/g)) return
 
+    const filterChars  = []
+    const filterPinyin = []
     const uniqueChars = [...new Set(text.split(''))]
-    const filterChars = dictionary.filter(e => uniqueChars.includes(e.character)).map(e => e.character)
-    const filterPinyin = dictionary.filter(e => uniqueChars.includes(e.character)).map(e => e.pinyin)
 
-    if(filterChars.length < 1 || filterPinyin.length < 1 ) return
+    const getCharsPinyin = dictionary.filter(e => uniqueChars.includes(e.character)).map(e => [e.character,e.pinyin[0]])
+
+    // const filterChars = dictionary.filter(e => uniqueChars.includes(e.character)).map(e => e.character)
+    // const filterPinyin = dictionary.filter(e => uniqueChars.includes(e.character)).map(e => e.pinyin)
+
+    // Get Char Same Text
+    uniqueChars.forEach(e => {
+      getCharsPinyin.forEach(en => {
+        if(en[0].includes(e)){
+          filterChars.push(e)
+          filterPinyin.push(en[1])
+        }
+      })
+    })
 
     setFilterText(filterChars)
     setPinyin(filterPinyin)
@@ -84,7 +98,7 @@ function App() {
 
       
       <section className='flex flex-col gap-4 items-center text-center '>
-        <div className='flex flex-row gap-2 justify-center text-xl flex-wrap w-96 max-sm:w-72'>
+        <div className='flex flex-row gap-2 justify-center text-xl flex-wrap w-[27rem] max-sm:w-72'>
           {
             filterText.length > 0 && ( 
               filterText.map((t,index) => {
