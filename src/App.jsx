@@ -1,0 +1,94 @@
+import React, { useEffect, useRef, useState } from 'react';
+import fileDictionary from './assets/dictionary.txt';
+import TextToSpeech from './TTS';
+import { TbReload } from "react-icons/tb";
+
+
+function App() {
+  const [text,setText] = useState('我')
+  const [filterText,setFilterText] = useState(['我'])
+  const [dictionary,setDictonary] = useState([])
+  const [selected,setSelected] = useState(0)
+  const [pinyin,setPinyin] = useState("")
+  const objRef = useRef()
+
+  useEffect(() => {
+    // Set file dictionary
+    fetch(fileDictionary)
+      .then((res) => res.text())
+      .then((text) => {
+        const lines = text.split("\n").filter(line => line.trim() !== "")
+        const parsedLines = lines.map(line => JSON.parse(line))
+        
+        setDictonary(parsedLines) 
+        setPinyin(parsedLines.filter(e => filterText.includes(e.character)).map(e => e.pinyin))
+      })
+      .catch((e) => console.error(e));
+
+    },[])
+
+
+  const handleCodePoints = (code) => {
+    return Array.from(code).map(char => char.codePointAt(0))
+  }
+
+
+
+
+  const handleSearch = () => {
+    if(text.length > 40 || text === "") return
+
+    const uniqueChars = [...new Set(text.split(''))]
+    const filterChars = dictionary.filter(e => uniqueChars.includes(e.character)).map(e => e.character)
+    const filterPinyin = dictionary.filter(e => uniqueChars.includes(e.character)).map(e => e.pinyin)
+
+    if(filterChars.length < 1 || filterPinyin.length < 1 ) return
+
+    setFilterText(filterChars)
+    setPinyin(filterPinyin)
+  }
+
+
+  const handleBack = () => {
+    objRef.current.data = `./svgs/${handleCodePoints(filterText[selected])}.svg`
+  } 
+
+  return (
+    <main className='flex justify-center items-center flex-col gap-4 '>
+      <section className="flex gap-2 flex-col">
+        <h1 className='text-5xl font-bold text-center'>Hanzi</h1>
+        <div className='flex text-xl'>
+          <input type="text" value={text} onFocus={() => setText("")} onChange={e => setText(e.target.value)} placeholder="Enter Chinese Text" className="p-2 w-80 outline-none border-black border-solid border-2 max-sm:w-72 max-[400px]:w-56" />
+          <button onClick={handleSearch} className='p-2 border-black bg-black text-white border-solid border-2 outline-none'>Search</button>
+        </div>
+        <span className='text-center text-red-600 font-mono text-xs' >Lưu ý: Giới hạn 40 ký tự!!!</span>
+      </section>
+
+      
+      <section className='flex flex-col gap-4 items-center text-center '>
+        <div className='flex flex-row gap-2 justify-center text-xl flex-wrap w-96 max-sm:w-72'>
+          {
+            filterText.length > 0 && ( 
+              filterText.map((t,index) => {
+                return <div key={index} onClick={() => setSelected(index)} className={`border-black border-solid border px-2 py-1 cursor-pointer rounded-md ${selected === index ? 'bg-black text-white' : '' }`}>{t}</div>
+              })
+            )
+          }
+        </div>
+        <div className='w-96 h-96 select-none border-black border-2 rounded-lg pointer-events-none max-sm:w-72 max-sm:h-72 max-[400px]:w-52 max-[400px]:h-52 '>
+          {/* <img ref={objRef} src={`./svgs/${handleCodePoints(filterText[selected])}.svg`} className='w-full h-full' alt="" /> */}
+          <object type="image/svg+xml" ref={objRef} data={`./svgs/${handleCodePoints(filterText[selected])}.svg`} className='w-full h-full'></object>
+
+        </div>
+        <div className='text-3xl'>Pinyin: {pinyin[selected]}</div>
+        <div className='text-4xl flex justify-center items-center cursor-pointer gap-6'>
+          <TbReload onClick={handleBack} />
+          <TextToSpeech text={filterText[selected]} />
+        </div>
+
+      </section>
+    </main>
+  );
+}
+
+export default App;
