@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import fileDictionary from './assets/dictionary.txt';
 import TextToSpeech from './TTS';
 import { TbReload } from "react-icons/tb";
+import { HiMiniSpeakerWave } from "react-icons/hi2";
+
 
 
 function App() {
@@ -53,6 +55,22 @@ function App() {
     objRef.current.data = `./svgs/${handleCodePoints(filterText[selected])}.svg`
   } 
 
+  const handleSpeak = () => {
+    // https://proxy.junookyo.workers.dev/?language=cmn-Hant-TW&text=%E4%BD%A0%E5%A5%BD&speed=1
+    const checkAudio = document.querySelectorAll("audio")
+    if(checkAudio.length > 0) {checkAudio.forEach(e => e.remove())}
+    const audio = document.createElement('audio');
+    audio.src = `https://proxy.junookyo.workers.dev/?language=cmn-Hant-TW&text=${filterText[selected]}&speed=1`
+    audio.style.display = "none"
+    document.body.appendChild(audio)
+
+    audio.play()
+    audio.onended = () => {
+      audio.remove();
+    };
+  }
+
+
   return (
     <main className='flex justify-center items-center flex-col gap-4 '>
       <section className="flex gap-2 flex-col">
@@ -83,9 +101,8 @@ function App() {
         <div className='text-3xl'>Pinyin: {pinyin[selected]}</div>
         <div className='text-4xl flex justify-center items-center cursor-pointer gap-6'>
           <TbReload onClick={handleBack} />
-          <TextToSpeech text={filterText[selected]} />
+          <HiMiniSpeakerWave onClick={handleSpeak}/>
         </div>
-
       </section>
     </main>
   );

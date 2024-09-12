@@ -4,10 +4,13 @@ function TTS({ text }) {
 
   const speak = () => {
     if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(text);
+      const utterance = new window.SpeechSynthesisUtterance(text);
       utterance.lang = "zh-CN";
+      utterance.volume = 1.0;
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
 
-      window.speechSynthesis.speak(utterance);
+      speechSynthesis.speak(utterance);
     } else {
       console.error("Speech Synthesis is not supported in this browser.");
     }
