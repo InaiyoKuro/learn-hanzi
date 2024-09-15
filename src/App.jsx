@@ -1,10 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import fileDictionary from './assets/dictionary.txt';
-import TextToSpeech from './TTS';
 import { TbReload } from "react-icons/tb";
 import { HiMiniSpeakerWave } from "react-icons/hi2";
-
-
+import { FaExchangeAlt } from "react-icons/fa";
 
 function App() {
   const [text,setText] = useState('我')
@@ -12,7 +10,29 @@ function App() {
   const [dictionary,setDictonary] = useState([])
   const [selected,setSelected] = useState(0)
   const [pinyin,setPinyin] = useState("")
+  const [isHanzi,setIsHanzi] = useState(true)
+  const [isLoop,setIsLoop] = useState(false)
+  const [isReDraw,setIsReDraw] = useState(false)
+
+
   const objRef = useRef()
+
+  useEffect(() => {
+    if(!isLoop){
+      const checkAudio = document.querySelectorAll("audio.speak")
+      if(checkAudio.length > 0) {checkAudio.forEach(e => e.remove())}
+    }
+  }, [isLoop])
+
+  useEffect(() => {
+    if(!isReDraw){
+      const interval = setInterval(() => {
+        objRef.current.data = `./svgs/${handleCodePoints(filterText[selected])}.svg`
+      }, 20000);
+      return () => clearInterval(interval);
+    }
+  }, [filterText, selected]); 
+
 
   useEffect(() => {
     // Set file dictionary
@@ -36,8 +56,6 @@ function App() {
   }
 
 
-
-
   const handleSearch = () => {
     if(text.length > 40 || text === "" || text.match(/\w/g)) return
 
@@ -46,9 +64,6 @@ function App() {
     const uniqueChars = [...new Set(text.split(''))]
 
     const getCharsPinyin = dictionary.filter(e => uniqueChars.includes(e.character)).map(e => [e.character,e.pinyin[0]])
-
-    // const filterChars = dictionary.filter(e => uniqueChars.includes(e.character)).map(e => e.character)
-    // const filterPinyin = dictionary.filter(e => uniqueChars.includes(e.character)).map(e => e.pinyin)
 
     // Get Char Same Text
     uniqueChars.forEach(e => {
@@ -64,18 +79,65 @@ function App() {
     setPinyin(filterPinyin)
   }
 
+  const handleSearchPinyin = () => {
+    const hasChineseCharacters = /[\u4e00-\u9fff]/;
 
-  const handleBack = () => {
+    if(text.length > 40 || text === "" || hasChineseCharacters.test(text)) return
+
+    const filterChars  = []
+    const filterPinyin = []
+    const uniqueChars = [...new Set(text.toLocaleLowerCase().split(' '))]
+
+    const pinyinToChars = new Map();
+
+    dictionary.forEach(e => {
+      const pinyin = e.pinyin[0];
+      if (!pinyinToChars.has(pinyin)) {
+        pinyinToChars.set(pinyin, []);
+      }
+      pinyinToChars.get(pinyin).push(e.character);
+    });
+
+    uniqueChars.forEach(pinyin => {
+      const chars = pinyinToChars.get(pinyin);
+      if (chars) {
+        chars.forEach(char => {
+          filterChars.push(char);
+          filterPinyin.push(pinyin);  
+        })
+      }
+    });
+
+    if(!filterChars.length) return
+
+    setFilterText(filterChars)
+    setPinyin(filterPinyin)
+  }
+
+
+
+  const resetAutoDraw = () => {
+    setTimeout(() => {
+      setIsReDraw(false)
+    }, 10000); 
+  }
+
+  const handleReload = () => {
+    if(!handleCodePoints(filterText[selected])) return
+    setIsReDraw(true)
     objRef.current.data = `./svgs/${handleCodePoints(filterText[selected])}.svg`
+    resetAutoDraw()
   } 
 
   const handleSpeak = () => {
     // https://proxy.junookyo.workers.dev/?language=cmn-Hant-TW&text=%E4%BD%A0%E5%A5%BD&speed=1
-    const checkAudio = document.querySelectorAll("audio")
+    const checkAudio = document.querySelectorAll("audio.speak")
     if(checkAudio.length > 0) {checkAudio.forEach(e => e.remove())}
     const audio = document.createElement('audio');
     audio.src = `https://proxy.junookyo.workers.dev/?language=cmn-Hant-TW&text=${filterText[selected]}&speed=1`
     audio.style.display = "none"
+    audio.loop = isLoop
+    audio.classList.add("speak")
     document.body.appendChild(audio)
 
     audio.play()
@@ -84,14 +146,30 @@ function App() {
     };
   }
 
+  const handleChange = () => {
+    setText("")
+    setIsHanzi(!isHanzi)
+  }
+
+  const handleLoop = () => {
+    setIsLoop(!isLoop)
+  }
 
   return (
     <main className='flex justify-center items-center flex-col gap-4 '>
       <section className="flex gap-2 flex-col">
         <h1 className='text-5xl font-bold text-center'>Hanzi</h1>
-        <div className='flex text-xl'>
-          <input type="text" value={text} onFocus={() => setText("")} onChange={e => setText(e.target.value)} placeholder="Enter Chinese Text" className="p-2 w-80 outline-none border-black border-solid border-2 max-sm:w-72 max-[400px]:w-56" />
-          <button onClick={handleSearch} className='p-2 border-black bg-black text-white border-solid border-2 outline-none'>Search</button>
+        <div className='flex text-xl items-center gap-2'>
+          <button className='outline-none' onClick={handleChange}>
+            <FaExchangeAlt size={"24px"} className='rotate-90 ' />
+          </button>
+          <div>
+            {isHanzi ? 
+              (<input type="text" value={text} onFocus={() => setText("")} onChange={e => setText(e.target.value)} placeholder="Enter Chinese Text" className="p-2 w-80 outline-none border-black border-solid border-2 max-sm:w-72 max-[400px]:w-56" />)
+              : (<input type="text" value={text} onFocus={() => setText("")} onChange={e => setText(e.target.value)} placeholder="Enter Pinyin" className="p-2 w-80 outline-none border-black border-solid border-2 max-sm:w-72 max-[400px]:w-56" />)
+            }
+            <button onClick={isHanzi ? handleSearch : handleSearchPinyin} className='p-2 border-black bg-black text-white border-solid border-2 outline-none'>Search</button>
+          </div>
         </div>
         <span className='text-center text-red-600 font-mono text-xs' >Lưu ý: Giới hạn 40 ký tự!!!</span>
       </section>
@@ -109,13 +187,17 @@ function App() {
         </div>
         <div className='w-96 h-96 select-none border-black border-2 rounded-lg pointer-events-none max-sm:w-72 max-sm:h-72 max-[400px]:w-52 max-[400px]:h-52 '>
           {/* <img ref={objRef} src={`./svgs/${handleCodePoints(filterText[selected])}.svg`} className='w-full h-full' alt="" /> */}
-          <object type="image/svg+xml" ref={objRef} data={`./svgs/${handleCodePoints(filterText[selected])}.svg`} className='w-full h-full'></object>
-
+          {handleCodePoints(filterText[selected]) && (<object type="image/svg+xml" ref={objRef} data={`./svgs/${handleCodePoints(filterText[selected])}.svg`} className='w-full h-full'></object>)}
         </div>
         <div className='text-3xl'>Pinyin: {pinyin[selected]}</div>
-        <div className='text-4xl flex justify-center items-center cursor-pointer gap-6'>
-          <TbReload onClick={handleBack} />
-          <HiMiniSpeakerWave onClick={handleSpeak}/>
+        <div className='flex flex-col gap-2'>
+          <div className='flex text-4xl justify-center items-center cursor-pointer gap-6'>
+            <TbReload onClick={handleReload} />
+            <HiMiniSpeakerWave onClick={handleSpeak}/>
+          </div>
+          <div className='text-3xl'>Loop: 
+            <button onClick={handleLoop} className='ml-2 text-xl border outline-none bg-black px-4 py-2 rounded-full text-white'>{isLoop ? "On" : "Off"}</button>
+          </div>
         </div>
       </section>
     </main>
