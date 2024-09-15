@@ -155,6 +155,12 @@ function App() {
     setIsLoop(!isLoop)
   }
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault(); 
+      isHanzi ? handleSearch() : handleSearchPinyin()
+    }
+  };
   return (
     <main className='flex justify-center items-center flex-col gap-4 '>
       <section className="flex gap-2 flex-col">
@@ -165,8 +171,8 @@ function App() {
           </button>
           <div>
             {isHanzi ? 
-              (<input type="text" value={text} onFocus={() => setText("")} onChange={e => setText(e.target.value)} placeholder="Enter Chinese Text" className="p-2 w-80 outline-none border-black border-solid border-2 max-sm:w-72 max-[400px]:w-56" />)
-              : (<input type="text" value={text} onFocus={() => setText("")} onChange={e => setText(e.target.value)} placeholder="Enter Pinyin" className="p-2 w-80 outline-none border-black border-solid border-2 max-sm:w-72 max-[400px]:w-56" />)
+              (<input type="text" onKeyDown={handleKeyDown} value={text} onFocus={() => setText("")} onChange={e => setText(e.target.value)} placeholder="Enter Chinese Text" className="p-2 w-80 outline-none border-black border-solid border-2 max-sm:w-72 max-[400px]:w-56" />)
+              : (<input type="text" onKeyDown={handleKeyDown} value={text} onFocus={() => setText("")} onChange={e => setText(e.target.value)} placeholder="Enter Pinyin" className="p-2 w-80 outline-none border-black border-solid border-2 max-sm:w-72 max-[400px]:w-56" />)
             }
             <button onClick={isHanzi ? handleSearch : handleSearchPinyin} className='p-2 border-black bg-black text-white border-solid border-2 outline-none'>Search</button>
           </div>
