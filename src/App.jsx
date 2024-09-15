@@ -134,7 +134,7 @@ function App() {
     const checkAudio = document.querySelectorAll("audio.speak")
     if(checkAudio.length > 0) {checkAudio.forEach(e => e.remove())}
     const audio = document.createElement('audio');
-    audio.src = `https://proxy.junookyo.workers.dev/?language=cmn-Hant-TW&text=${filterText[selected]}&speed=1`
+    audio.src = `https://proxy.junookyo.workers.dev/?language=cmn-Hant-TW&text=${filterText[selected]}&speed=0.8`
     audio.style.display = "none"
     audio.loop = isLoop
     audio.classList.add("speak")
