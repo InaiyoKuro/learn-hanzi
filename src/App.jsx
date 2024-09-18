@@ -127,6 +127,11 @@ function App() {
     resetAutoDraw()
   } 
 
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+
   const handleSpeak = async() => {
     // https://proxy.junookyo.workers.dev/?language=cmn-Hant-TW&text=%E4%BD%A0%E5%A5%BD&speed=1
     const checkAudio = document.querySelectorAll("audio.speak")
