@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import fileDictionary from './assets/dictionary.txt';
 import { TbReload } from "react-icons/tb";
 import { HiMiniSpeakerWave } from "react-icons/hi2";
@@ -18,12 +18,10 @@ function App() {
   const objRef = useRef()
 
   useEffect(() => {
-    if(!isLoop){
       const checkAudio = document.querySelectorAll("audio.speak")
       if(checkAudio.length > 0) {checkAudio.forEach(e => e.remove())}
-    }
   }, [isLoop])
-
+  
   useEffect(() => {
     if(!isReDraw){
       const interval = setInterval(() => {
@@ -31,7 +29,7 @@ function App() {
       }, 20000);
       return () => clearInterval(interval);
     }
-  }, [filterText, selected]); 
+  }, [filterText,selected]); 
 
 
   useEffect(() => {
@@ -129,21 +127,38 @@ function App() {
     resetAutoDraw()
   } 
 
-  const handleSpeak = () => {
+  const handleSpeak = async() => {
     // https://proxy.junookyo.workers.dev/?language=cmn-Hant-TW&text=%E4%BD%A0%E5%A5%BD&speed=1
     const checkAudio = document.querySelectorAll("audio.speak")
     if(checkAudio.length > 0) {checkAudio.forEach(e => e.remove())}
     const audio = document.createElement('audio');
-    audio.src = `https://proxy.junookyo.workers.dev/?language=cmn-Hant-TW&text=${filterText[selected]}&speed=0.8`
+    audio.src = `https://proxy.junookyo.workers.dev/?language=cmn-Hant-TW&text=${filterText[selected]}&speed=0.1`
     audio.style.display = "none"
-    audio.loop = isLoop
     audio.classList.add("speak")
     document.body.appendChild(audio)
 
-    audio.play()
-    audio.onended = () => {
-      audio.remove();
+
+    const playWithSleep = async () => {
+      await audio.play();
+  
+      audio.onended = async () => {
+        if (isLoop) {
+          await sleep(1000); 
+          playWithSleep();
+        } else {
+          audio.remove(); 
+        }
+      };
     };
+  
+    if (isLoop) {
+      playWithSleep(); 
+    } else {
+      await audio.play();
+      audio.onended = () => {
+        audio.remove(); 
+      }
+    }
   }
 
   const handleChange = () => {
@@ -161,6 +176,8 @@ function App() {
       isHanzi ? handleSearch() : handleSearchPinyin()
     }
   };
+
+
   return (
     <main className='flex justify-center items-center flex-col gap-4 '>
       <section className="flex gap-2 flex-col">
@@ -192,7 +209,6 @@ function App() {
           }
         </div>
         <div className='w-96 h-96 select-none border-black border-2 rounded-lg pointer-events-none max-sm:w-72 max-sm:h-72 max-[400px]:w-52 max-[400px]:h-52 '>
-          {/* <img ref={objRef} src={`./svgs/${handleCodePoints(filterText[selected])}.svg`} className='w-full h-full' alt="" /> */}
           {handleCodePoints(filterText[selected]) && (<object type="image/svg+xml" ref={objRef} data={`./svgs/${handleCodePoints(filterText[selected])}.svg`} className='w-full h-full'></object>)}
         </div>
         <div className='text-3xl'>Pinyin: {pinyin[selected]}</div>
