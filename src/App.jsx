@@ -22,14 +22,14 @@ function App() {
       if(checkAudio.length > 0) {checkAudio.forEach(e => e.remove())}
   }, [isLoop])
   
-  useEffect(() => {
-    if(!isReDraw){
-      const interval = setInterval(() => {
-        objRef.current.data = `./svgs/${handleCodePoints(filterText[selected])}.svg`
-      }, 20000);
-      return () => clearInterval(interval);
-    }
-  }, [filterText,selected]); 
+  // useEffect(() => {
+  //   if(!isReDraw){
+  //     const interval = setInterval(() => {
+  //       objRef.current.data = `./svgs/${handleCodePoints(filterText[selected])}.svg`
+  //     }, 20000);
+  //     return () => clearInterval(interval);
+  //   }
+  // }, [filterText,selected]); 
 
 
   useEffect(() => {
