@@ -12,16 +12,36 @@ function App() {
   const [pinyin,setPinyin] = useState("")
   const [isHanzi,setIsHanzi] = useState(true)
   const [isLoop,setIsLoop] = useState(false)
+  const [convertTextToNormal,setConvertTextToNormal] = useState(["wo3"])
   const [isReDraw,setIsReDraw] = useState(false)
 
-
+  const tonesMap = {
+    "a": "a1", "e": "e1", "i": "i1","o": "o1","u": "u1",
+    "ā": "a1", "á": "a2", "ǎ": "a3", "à": "a4",
+    "ē": "e1", "é": "e2", "ě": "e3", "è": "e4",
+    "ī": "i1", "í": "i2", "ǐ": "i3", "ì": "i4",
+    "ō": "o1", "ó": "o2", "ǒ": "o3", "ò": "o4",
+    "ū": "u1", "ú": "u2", "ǔ": "u3", "ù": "u4",
+    "ǖ": "v1", "ǘ": "v2", "ǚ": "v3", "ǜ": "v4"
+  };
+  const tonesSpecial = {
+    "nüē": "nue1", "nüé": "nue2", "nüě": "nue3", "nüè": "nue4",
+    "lüē": "lve1", "lüé": "lve2", "lüě": "lve3", "lüè": "lve4"
+  }
+              
   const objRef = useRef()
 
   useEffect(() => {
-      const checkAudio = document.querySelectorAll("audio.speak")
-      if(checkAudio.length > 0) {checkAudio.forEach(e => e.remove())}
-  }, [isLoop])
+    const checkAudio = document.querySelectorAll("audio.speak")
+    if(checkAudio.length > 0) {checkAudio.forEach(e => e.remove())}
+  }, [isLoop,filterText,selected])
   
+  useEffect(() => {
+    if(!localStorage.getItem("texts")) return
+    setText(localStorage.getItem("texts").replace(",",""))
+  },[])
+
+
   // useEffect(() => {
   //   if(!isReDraw){
   //     const interval = setInterval(() => {
@@ -55,10 +75,13 @@ function App() {
 
 
   const handleSearch = () => {
+    setIsLoop(false)
     if(text.length > 40 || text === "" || text.match(/\w/g)) return
 
     const filterChars  = []
     const filterPinyin = []
+    const convertPinyin = []
+    let tone;
     const uniqueChars = [...new Set(text.split(''))]
 
     const getCharsPinyin = dictionary.filter(e => uniqueChars.includes(e.character)).map(e => [e.character,e.pinyin[0]])
@@ -67,23 +90,39 @@ function App() {
     uniqueChars.forEach(e => {
       getCharsPinyin.forEach(en => {
         if(en[0].includes(e)){
+          if (tonesSpecial[en[1]]) {
+            convertPinyin.push(tonesSpecial[en[1]]);
+          } else {
+            const basePinyin = en[1].replace(/[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]/g, (match) => {
+              tone = tonesMap[match][1]; // Lấy số thanh điệu
+              const charWithoutTone = tonesMap[match][0]; // Lấy ký tự không dấu
+              return charWithoutTone; // Trả về ký tự không dấu và số thanh điệu
+            });
+            convertPinyin.push(basePinyin + tone);
+          }
           filterChars.push(e)
           filterPinyin.push(en[1])
+
         }
       })
     })
-
+    setConvertTextToNormal(convertPinyin)
+    localStorage.setItem("texts",filterChars)
     setFilterText(filterChars)
     setPinyin(filterPinyin)
   }
 
   const handleSearchPinyin = () => {
+    setIsLoop(false)
+
     const hasChineseCharacters = /[\u4e00-\u9fff]/;
 
     if(text.length > 40 || text === "" || hasChineseCharacters.test(text)) return
 
     const filterChars  = []
     const filterPinyin = []
+    const convertPinyin = []
+    let tone;
     const uniqueChars = [...new Set(text.toLocaleLowerCase().split(' '))]
 
     const pinyinToChars = new Map();
@@ -98,6 +137,20 @@ function App() {
 
     uniqueChars.forEach(pinyin => {
       const chars = pinyinToChars.get(pinyin);
+      console.log(pinyin)
+      if (tonesSpecial[pinyin]) {
+        convertPinyin.push(tonesSpecial[pinyin]);
+      } else {
+        const basePinyin = pinyin.replace(/[aāáǎàeēéěèiīíǐìoōóǒòuūúǔùǖǘǚǜ]/g, (match) => {
+          tone = tonesMap[match][1]; // Lấy số thanh điệu
+          const charWithoutTone = tonesMap[match][0]; // Lấy ký tự không dấu
+          console.log(charWithoutTone)
+          return charWithoutTone; // Trả về ký tự không dấu và số thanh điệu
+        });
+        convertPinyin.push(basePinyin + tone);
+        console.log(convertPinyin)
+      }
+
       if (chars) {
         chars.forEach(char => {
           filterChars.push(char);
@@ -107,7 +160,8 @@ function App() {
     });
 
     if(!filterChars.length) return
-
+    
+    setConvertTextToNormal(convertPinyin)
     setFilterText(filterChars)
     setPinyin(filterPinyin)
   }
@@ -134,10 +188,12 @@ function App() {
 
   const handleSpeak = async() => {
     // https://proxy.junookyo.workers.dev/?language=cmn-Hant-TW&text=%E4%BD%A0%E5%A5%BD&speed=1
+    if(!convertTextToNormal[0]) return
     const checkAudio = document.querySelectorAll("audio.speak")
     if(checkAudio.length > 0) {checkAudio.forEach(e => e.remove())}
     const audio = document.createElement('audio');
-    audio.src = `https://proxy.junookyo.workers.dev/?language=cmn-Hant-TW&text=${filterText[selected]}&speed=0.1`
+    audio.src = `https://cdn.yoyochinese.com/audio/pychart/${isHanzi ? convertTextToNormal[selected] : convertTextToNormal[0]}.mp3`
+    // audio.src = `https://proxy.junookyo.workers.dev/?language=cmn-Hant-TW&text=${filterText[selected]}&speed=0.1`
     audio.style.display = "none"
     audio.classList.add("speak")
     document.body.appendChild(audio)
