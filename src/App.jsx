@@ -16,7 +16,7 @@ function App() {
   const [isReDraw,setIsReDraw] = useState(false)
 
   const toneMap = {
-    '1': ['ā', 'ē', 'ī', 'ō', 'ū', 'ǖ'],
+    '1': ['ā', 'e', 'ī', 'ō', 'ū', 'ǖ'],
     '2': ['á', 'é', 'í', 'ó', 'ú', 'ǘ'],
     '3': ['ǎ', 'ě', 'ǐ', 'ǒ', 'ǔ', 'ǚ'],
     '4': ['à', 'è', 'ì', 'ò', 'ù', 'ǜ']
@@ -102,7 +102,7 @@ function App() {
           if (tonesSpecial[en[1]]) {
             convertPinyin.push(tonesSpecial[en[1]]);
           } else {
-            const basePinyin = en[1].replace(/[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]/g, (match) => {
+            const basePinyin = en[1].replace(/[āáǎàeēéěèīíǐìōóǒòūúǔùǖǘǚǜ]/g, (match) => {
               tone = tonesMap[match][1]; // Lấy số thanh điệu
               const charWithoutTone = tonesMap[match][0]; // Lấy ký tự không dấu
               return charWithoutTone; // Trả về ký tự không dấu và số thanh điệu
@@ -215,8 +215,6 @@ function App() {
 
       const numberToChar = convertPinyinWithNumber(pinyin)
       const chars = pinyinToChars.get(numberToChar);
-
-      console.log(numberToChar)
 
       if (chars) {
         chars.forEach(char => {
