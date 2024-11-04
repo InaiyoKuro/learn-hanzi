@@ -15,6 +15,15 @@ function App() {
   const [convertTextToNormal,setConvertTextToNormal] = useState(["wo3"])
   const [isReDraw,setIsReDraw] = useState(false)
 
+  const toneMap = {
+    '1': ['ā', 'ē', 'ī', 'ō', 'ū', 'ǖ'],
+    '2': ['á', 'é', 'í', 'ó', 'ú', 'ǘ'],
+    '3': ['ǎ', 'ě', 'ǐ', 'ǒ', 'ǔ', 'ǚ'],
+    '4': ['à', 'è', 'ì', 'ò', 'ù', 'ǜ']
+  };
+
+  const vowels = ['a', 'e', 'i', 'o', 'u', 'ü'];
+
   const tonesMap = {
     "a": "a1", "e": "e1", "i": "i1","o": "o1","u": "u1",
     "ā": "a1", "á": "a2", "ǎ": "a3", "à": "a4",
@@ -112,6 +121,31 @@ function App() {
     setPinyin(filterPinyin)
   }
 
+
+  function convertPinyinWithNumber(input) {
+    const inputWithDefaultTone = input.replace(/\b([a-zü]+)\b/g, '$11');
+
+    return inputWithDefaultTone.replace(/\b([a-zü]+)([1-4])\b/g, (match, pinyin, tone) => {
+        let toneVowelIndex = -1;
+
+        for (const vowel of ['a', 'o', 'e', 'u', 'ü', 'i']) {
+            if (pinyin.includes(vowel)) {
+                toneVowelIndex = pinyin.lastIndexOf(vowel); 
+                break;
+            }
+        }
+
+        if (toneVowelIndex !== -1) {
+            const originalVowel = pinyin[toneVowelIndex];
+            const toneChar = toneMap[tone][vowels.indexOf(originalVowel)];
+            return pinyin.slice(0, toneVowelIndex) + toneChar + pinyin.slice(toneVowelIndex + 1);
+        }
+
+        return match; 
+    });
+}
+
+
   const handleSearchPinyin = () => {
     setIsLoop(false)
 
@@ -122,7 +156,6 @@ function App() {
     const filterChars  = []
     const filterPinyin = []
     const convertPinyin = []
-    let tone;
     const uniqueChars = [...new Set(text.toLocaleLowerCase().split(' '))]
 
     const pinyinToChars = new Map();
@@ -136,25 +169,34 @@ function App() {
     });
 
     uniqueChars.forEach(pinyin => {
-      const chars = pinyinToChars.get(pinyin);
-      console.log(pinyin)
-      if (tonesSpecial[pinyin]) {
-        convertPinyin.push(tonesSpecial[pinyin]);
+
+      const numberToChar = convertPinyinWithNumber(pinyin)
+      const chars = pinyinToChars.get(numberToChar);
+
+      if (tonesSpecial[numberToChar]) {
+        convertPinyin.push(tonesSpecial[numberToChar]);
       } else {
-        const basePinyin = pinyin.replace(/[aāáǎàeēéěèiīíǐìoōóǒòuūúǔùǖǘǚǜ]/g, (match) => {
-          tone = tonesMap[match][1]; // Lấy số thanh điệu
-          const charWithoutTone = tonesMap[match][0]; // Lấy ký tự không dấu
-          console.log(charWithoutTone)
-          return charWithoutTone; // Trả về ký tự không dấu và số thanh điệu
+
+        let tone = "";
+        let temp = "";
+        
+        const basePinyin = numberToChar.replace(/[iīíǐìaāáǎàeēéěèoōóǒòuūúǔùǖǘǚǜ]/g, (match) => {
+          const [charWithoutTone, toneNum] = tonesMap[match]; 
+
+          if(toneNum > 1) tone = toneNum
+          if(toneNum == 1) temp = toneNum
+
+          return charWithoutTone;
         });
-        convertPinyin.push(basePinyin + tone);
-        console.log(convertPinyin)
+        convertPinyin.push(basePinyin + (tone === "" ? temp : tone));
       }
+
+
 
       if (chars) {
         chars.forEach(char => {
           filterChars.push(char);
-          filterPinyin.push(pinyin);  
+          filterPinyin.push(numberToChar);  
         })
       }
     });
@@ -240,7 +282,7 @@ function App() {
 
 
   return (
-    <main className='flex justify-center items-center flex-col gap-4 '>
+    <main className='flex justify-center items-center flex-col gap-4'>
       <section className="flex gap-2 flex-col">
         <h1 className='text-5xl font-bold text-center'>Hanzi</h1>
         <div className='flex text-xl items-center gap-2'>
