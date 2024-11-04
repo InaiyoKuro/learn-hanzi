@@ -121,13 +121,41 @@ function App() {
     setPinyin(filterPinyin)
   }
 
+  const normalizePinyin = (pinyin) => {
+    return pinyin
+        .normalize('NFD') 
+        .replace(/[\u0300-\u036f]/g, '');
+  }
 
-  function convertPinyinWithNumber(input) {
+
+  const convertPinyinWithNumber = (input) => {
+
+
+    if(input.includes("ü")){
+      return input.replace(/\b([a-zü]+)([1-4])\b/g, (match, pinyin, tone) => {
+        let toneVowelIndex = -1;
+        for (const vowel of ['a', 'o', 'e', 'u', 'i']) {
+            if (pinyin.includes(vowel)) {
+                toneVowelIndex = pinyin.lastIndexOf(vowel);
+                
+                break;
+            }
+        }
+        if (toneVowelIndex !== -1) {
+          const originalVowel = pinyin[toneVowelIndex];
+          const toneChar = toneMap[tone][vowels.indexOf(originalVowel)];
+          console.log(pinyin.slice(0, toneVowelIndex) + toneChar + pinyin.slice(toneVowelIndex + 1))
+          return pinyin.slice(0, toneVowelIndex) + toneChar + pinyin.slice(toneVowelIndex + 1);
+        }
+
+      return match; 
+      })
+    }
+
     const inputWithDefaultTone = input.replace(/\b([a-zü]+)\b/g, '$11');
 
     return inputWithDefaultTone.replace(/\b([a-zü]+)([1-4])\b/g, (match, pinyin, tone) => {
         let toneVowelIndex = -1;
-
         for (const vowel of ['a', 'o', 'e', 'u', 'ü', 'i']) {
             if (pinyin.includes(vowel)) {
                 toneVowelIndex = pinyin.lastIndexOf(vowel); 
@@ -140,11 +168,26 @@ function App() {
             const toneChar = toneMap[tone][vowels.indexOf(originalVowel)];
             return pinyin.slice(0, toneVowelIndex) + toneChar + pinyin.slice(toneVowelIndex + 1);
         }
+        
 
         return match; 
     });
-}
+  }
 
+  const convertPinyinToNumber = (pinyin) => {
+    let tone = "";
+    let temp = "";
+    
+    const basePinyin = pinyin.replace(/[iīíǐìaāáǎàeēéěèoōóǒòuūúǔùǖǘǚǜ]/g, (match) => {
+      const [charWithoutTone, toneNum] = tonesMap[match]; 
+
+      if(toneNum > 1) tone = toneNum
+      if(toneNum == 1) temp = toneNum
+
+      return charWithoutTone;
+    });
+    return (basePinyin + (tone === "" ? temp : tone));
+  }
 
   const handleSearchPinyin = () => {
     setIsLoop(false)
@@ -173,36 +216,20 @@ function App() {
       const numberToChar = convertPinyinWithNumber(pinyin)
       const chars = pinyinToChars.get(numberToChar);
 
-      if (tonesSpecial[numberToChar]) {
-        convertPinyin.push(tonesSpecial[numberToChar]);
-      } else {
-
-        let tone = "";
-        let temp = "";
-        
-        const basePinyin = numberToChar.replace(/[iīíǐìaāáǎàeēéěèoōóǒòuūúǔùǖǘǚǜ]/g, (match) => {
-          const [charWithoutTone, toneNum] = tonesMap[match]; 
-
-          if(toneNum > 1) tone = toneNum
-          if(toneNum == 1) temp = toneNum
-
-          return charWithoutTone;
-        });
-        convertPinyin.push(basePinyin + (tone === "" ? temp : tone));
-      }
-
-
+      console.log(numberToChar)
 
       if (chars) {
         chars.forEach(char => {
           filterChars.push(char);
-          filterPinyin.push(numberToChar);  
+          filterPinyin.push(numberToChar);
+          if(tonesSpecial[numberToChar]) convertPinyin.push(tonesSpecial[numberToChar])
+          else convertPinyin.push(convertPinyinToNumber(numberToChar))
         })
       }
     });
 
     if(!filterChars.length) return
-    
+
     setConvertTextToNormal(convertPinyin)
     setFilterText(filterChars)
     setPinyin(filterPinyin)
@@ -210,11 +237,7 @@ function App() {
 
 
 
-  const resetAutoDraw = () => {
-    setTimeout(() => {
-      setIsReDraw(false)
-    }, 10000); 
-  }
+
 
   const handleReload = () => {
     if(!handleCodePoints(filterText[selected])) return
@@ -234,7 +257,7 @@ function App() {
     const checkAudio = document.querySelectorAll("audio.speak")
     if(checkAudio.length > 0) {checkAudio.forEach(e => e.remove())}
     const audio = document.createElement('audio');
-    audio.src = `https://cdn.yoyochinese.com/audio/pychart/${isHanzi ? convertTextToNormal[selected] : convertTextToNormal[0]}.mp3`
+    audio.src = `https://cdn.yoyochinese.com/audio/pychart/${isHanzi ? convertTextToNormal[selected] : convertTextToNormal[selected]}.mp3`
     // audio.src = `https://proxy.junookyo.workers.dev/?language=cmn-Hant-TW&text=${filterText[selected]}&speed=0.1`
     audio.style.display = "none"
     audio.classList.add("speak")
